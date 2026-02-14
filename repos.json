@@ -1,7 +1,7 @@
 [  {
     "kernelSource": {
       "name": "miku-KernelSU",
-      "repo": "https://github.com/MiCode/Xiaomi_Kernel_OpenSource/tree/star-r-oss",
+      "repo": "https://github.com/PhamtomK12/kernel_xiaomi_odin",
       "branch": "TDA",
       "device": "star"
     },
