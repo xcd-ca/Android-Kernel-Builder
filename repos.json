@@ -14,8 +14,8 @@
         "name": "gas"
       },
       {
-        "repo": "https://github.com/zyhk/clang-zyhk",
-        "branch": "clang-17",
+        "repo": "https://github.com/Zyin055/google-clang",
+        "branch": "clang-r416183b",
         "name": "clang"
       }
     ],
