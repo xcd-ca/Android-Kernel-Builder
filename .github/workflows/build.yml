@@ -137,12 +137,16 @@ jobs:
       - name: "🛠️ Fix Kernel Network Config (RPS/RFS)"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
         run: |
+          echo ">>> Force enabling RPS in Kconfig <<<"
+          # 暴力修改 Kconfig 文件，让它们默认开启，防止被 make defconfig 刷掉
+          sed -i 's/config RPS/config RPS\n\tdefault y/g' net/Kconfig || true
+          sed -i 's/config RFS_ACCEL/config RFS_ACCEL\n\tdefault y/g' net/Kconfig || true
+
           echo ">>> Injecting network fixes to ${{ env.DEFCONFIG_NAME }} <<<"
+          # 增加 CONFIG_NET_FLOW_LIMIT=y，在大多数内核里它是可见选项，会自动触发关联开启 RPS
+          echo -e "\nCONFIG_NET_FLOW_LIMIT=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
           echo -e "\nCONFIG_RPS=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
           echo -e "\nCONFIG_RFS_ACCEL=y" >> ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
-          
-          # 打印配置文件末尾，确认是否成功追加
-          tail -n 10 ./arch/${{ env.ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
@@ -151,6 +155,16 @@ jobs:
         run: |
           echo "PATH Variable: $PATH"
           make ${{ env.args }} ${{ env.DEFCONFIG_NAME }}
+          
+          # 关键操作：在生成了 .config 文件之后，用官方脚本二次强行注入！
+          echo ">>> Forcing hidden configs in final .config <<<"
+          ./scripts/config --file ${{ env.OUT_DIR }}/.config -e RPS
+          ./scripts/config --file ${{ env.OUT_DIR }}/.config -e RFS_ACCEL
+          make ${{ env.args }} olddefconfig
+          
+          # 打印出来检查一下，确认到底有没有生效
+          echo ">>> Checking final .config for RPS <<<"
+          grep -E "CONFIG_RPS|CONFIG_RFS_ACCEL" ${{ env.OUT_DIR }}/.config
 
       - name: "🎶 Build kernel"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
